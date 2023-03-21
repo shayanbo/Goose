@@ -1,0 +1,1 @@
+This is a mmap-based high-performance key-value storage for iOS.
