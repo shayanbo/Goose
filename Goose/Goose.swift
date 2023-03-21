@@ -19,8 +19,8 @@ public extension Goose {
 
 public class Goose {
 
-    private var original: UnsafeMutableRawPointer?
-    private var buffer: UnsafeMutableRawPointer?
+    private var original: UnsafeMutableRawPointer!
+    private var buffer: UnsafeMutableRawPointer!
     
     private var capacity: Int
     private var filePath: String
@@ -173,7 +173,7 @@ extension Goose {
         /// cache it for fast check
         memoryCache[record.key] = record.data
         
-        guard var buffer = buffer else {
+        guard buffer != nil else {
             return
         }
         
@@ -210,7 +210,7 @@ extension Goose {
     
     private func available(_ record: BodyRecord) -> Bool {
         
-        guard let buffer = buffer, let original = original else {
+        guard buffer != nil else {
             return false
         }
         
@@ -225,7 +225,7 @@ extension Goose {
     
     private func reload() {
         
-        guard var buffer = buffer, let original = original else {
+        guard buffer != nil else {
             return
         }
         
@@ -260,6 +260,10 @@ extension Goose {
     
     private func ensureCapacity(_ record: BodyRecord) {
         
+        guard buffer != nil else {
+            return
+        }
+        
         guard !available(record) else {
             return
         }
@@ -269,14 +273,19 @@ extension Goose {
         if available(record) {
             return
         }
+        
         // grow size if there's no enough room
         munmap(original, capacity) /// reset
         capacity *= 2 /// resize
-        remap() /// remap
-        rewrite() /// rewrite
+        remap()
+        rewrite()
     }
     
     private func rewrite() {
+        
+        guard buffer != nil else {
+            return
+        }
         
         /// reset
         memset(original, 0, capacity)
@@ -285,7 +294,7 @@ extension Goose {
         buffer = original
         
         /// jump to the first location after header
-        buffer? += 8
+        buffer += 8
         
         /// write one by one from the memory cache
         for (key, data) in memoryCache {
@@ -312,12 +321,12 @@ extension Goose {
         }
 
         /// 📄 create mmap area
-        buffer = mmap(UnsafeMutableRawPointer(mutating: nil), capacity, PROT_READ | PROT_WRITE, MAP_SHARED, fileNo, 0)
-        original = buffer
+        original = mmap(UnsafeMutableRawPointer(mutating: nil), capacity, PROT_READ | PROT_WRITE, MAP_SHARED, fileNo, 0)
+        buffer = original
     }
     
     private func increaseTotal(_ total: UInt64) {
-        original?.withMemoryRebound(to: UInt64.self, capacity: 8) { pointer in
+        original.withMemoryRebound(to: UInt64.self, capacity: 8) { pointer in
             pointer.pointee += total
         }
     }
