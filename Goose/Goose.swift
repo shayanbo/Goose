@@ -38,66 +38,68 @@ public class Goose {
 
 public extension Goose {
     
-    @discardableResult private func storePrimitive<T>(_ object: T?, for key: String) -> Bool {
-        var obj = object
-        let data = Data(bytes: &obj, count: MemoryLayout<T>.size)
-        append(BodyRecord(key: key, data: data))
-        return true
+    private func storePrimitive<T>(_ object: T?, for key: String) {
+        if var object = object {
+            let data = Data(bytes: &object, count: MemoryLayout<T>.size)
+            append(BodyRecord(key: key, data: data))
+        } else {
+            append(BodyRecord(key: key, data: Data()))
+        }
     }
     
     /// Signed
-    @discardableResult func store(_ object: Int?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: Int8?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: Int16?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: Int32?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: Int64?, for key: String) -> Bool { storePrimitive(object, for: key) }
+    func store(_ object: Int?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: Int8?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: Int16?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: Int32?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: Int64?, for key: String) { storePrimitive(object, for: key) }
     
     /// Unsigned
-    @discardableResult func store(_ object: UInt?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: UInt64?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: UInt32?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: UInt16?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: UInt8?, for key: String) -> Bool { storePrimitive(object, for: key) }
+    func store(_ object: UInt?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: UInt64?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: UInt32?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: UInt16?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: UInt8?, for key: String) { storePrimitive(object, for: key) }
     
     /// Decimal
-    @discardableResult func store(_ object: Float?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: Double?, for key: String) -> Bool { storePrimitive(object, for: key) }
-    @discardableResult func store(_ object: CGFloat?, for key: String) -> Bool { storePrimitive(object, for: key) }
+    func store(_ object: Float?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: Double?, for key: String) { storePrimitive(object, for: key) }
+    func store(_ object: CGFloat?, for key: String) { storePrimitive(object, for: key) }
     
     /// Anything else (simple type)
-    @discardableResult func store<T>(_ object: T?, for key: String) -> Bool { storePrimitive(object, for: key) }
+    func store<T>(_ object: T?, for key: String) { storePrimitive(object, for: key) }
     
     /// Bool
-    @discardableResult func store(_ object: Bool?, for key: String) -> Bool { storePrimitive(object, for: key) }
+    func store(_ object: Bool?, for key: String) { storePrimitive(object, for: key) }
 }
 
 extension Goose {
     
-    @discardableResult func store<T>(_ object: T?, for key: String) -> Bool where T : Codable {
+    func store<T>(_ object: T?, for key: String) where T : Codable {
         
         if let object = object, let data = try? JSONEncoder().encode(object) {
             append(BodyRecord(key: key, data: data))
-            return true
+        } else {
+            append(BodyRecord(key: key, data: Data()))
         }
-        return false
     }
     
-    @discardableResult func store(_ object: Data?, for key: String) -> Bool {
+    func store(_ object: Data?, for key: String) {
         
         if let object = object {
             append(BodyRecord(key: key, data: object))
-            return true
+        } else {
+            append(BodyRecord(key: key, data: Data()))
         }
-        return false
     }
     
-    @discardableResult func store(_ object: String?, for key: String) -> Bool {
+    func store(_ object: String?, for key: String) {
         
         if let object = object, let data = object.data(using: .utf8) {
             append(BodyRecord(key: key, data: data))
-            return true
+        } else {
+            append(BodyRecord(key: key, data: Data()))
         }
-        return false
     }
 }
 
@@ -251,8 +253,12 @@ extension Goose {
             buffer += .Stride(keySize)
             
             if let key = String(data: keyData, encoding: .utf8) {
-                let data = Data(bytes: UnsafeRawPointer(buffer), count: Int(dataSize))
-                memoryCache[key] = data
+                if dataSize == 0 {
+                    memoryCache[key] = nil
+                } else {
+                    let data = Data(bytes: UnsafeRawPointer(buffer), count: Int(dataSize))
+                    memoryCache[key] = data
+                }
             }
             buffer += .Stride(dataSize)
         }
